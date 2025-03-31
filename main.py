@@ -1,26 +1,32 @@
+import ntptime
+import utime
+import machine
 import gc
-from wifi_utils import connect_wifi, fetch_github_events, update_leds, get_event_counts
-from led_utils import turn_all_off, startup_animation
+from wifi_utils import connect_wifi
+from github_tracker import fetch_github_events, get_event_counts
+from led_utils import update_leds, startup_animation
 
+def sync_time():
+    try:
+        ntptime.settime()
+        # New York time (UTC-4 or UTC-5)
+        UTC_OFFSET = -4 * 3600 if (utime.localtime()[1] > 3 and utime.localtime()[1] < 11) else -5 * 3600
+        utime.timezone(UTC_OFFSET)
+        print("Time synced:", utime.localtime())
+    except Exception as e:
+        print("NTP sync failed:", e)
 
 def main():
+    gc.collect()
     startup_animation()
     wlan = connect_wifi()
+    sync_time()
     
-    # Fetch all event types (up to 100)
-    events = fetch_github_events(max_events=100)
-    print(f"Total events fetched: {len(events)}")
-    
-    # Count events per day
-    event_counts = get_event_counts(events)
-    print("Final event counts:", event_counts)
-    
-    # Update LEDs with brightness scaling
-    update_leds(event_counts)
-    
-    # Clean up
-    del events
-    gc.collect()
+    while True:
+        events = fetch_github_events()
+        event_counts = get_event_counts(events)
+        update_leds(event_counts)
+        utime.sleep(3600)
 
 if __name__ == "__main__":
     main()

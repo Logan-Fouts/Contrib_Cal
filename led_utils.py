@@ -43,21 +43,20 @@ def startup_animation():
     wave_colors = ['cyan', 'magenta', 'yellow', 'teal', 'purple']
     
     # Ripple out from center
-    for i in range(3):  # Repeat 3 times
-        for color in wave_colors:
-            # Expand outward
-            for pos in range(3):
-                set_led(2 - pos, color, 100)  # Move left
-                set_led(2 + pos, color, 100)  # Move right
-                utime.sleep(0.05)
-                turn_all_off()
-            
-            # Collapse inward
-            for pos in reversed(range(3)):
-                set_led(2 - pos, color, 100)
-                set_led(2 + pos, color, 100)
-                utime.sleep(0.05)
-                turn_all_off()
+    for color in wave_colors:
+        # Expand outward
+        for pos in range(3):
+            set_led(2 - pos, color, 100)  # Move left
+            set_led(2 + pos, color, 100)  # Move right
+            utime.sleep(0.05)
+            turn_all_off()
+        
+        # Collapse inward
+        for pos in reversed(range(3)):
+            set_led(2 - pos, color, 100)
+            set_led(2 + pos, color, 100)
+            utime.sleep(0.05)
+            turn_all_off()
     
     # Final burst
     for i in range(5):
@@ -69,3 +68,15 @@ def startup_animation():
 def turn_all_off():
     np.fill((0, 0, 0))
     np.write()
+
+def update_leds(event_counts):
+    max_count = max(event_counts) if max(event_counts) > 0 else 1
+    
+    for day in range(5):
+        count = event_counts[day]
+        if count > 0:
+            brightness = 15 + int(35 * (count / max_count))
+            set_led(day, 'green', brightness)
+        else:
+            set_led(day, 'red', 25)
+        utime.sleep(0.1)
