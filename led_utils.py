@@ -1,82 +1,118 @@
 from machine import Pin
 import neopixel
 import time
-import utime
+import random
 
-# Initialize NeoPixel strip on GP28 with 5 LEDs
-np = neopixel.NeoPixel(Pin(28), 5)
+class LED_UTILS:
+    
+    def __init__(self, num_days=7, pin_num=28):
+        self.num_leds = num_days
+        self.pin = Pin(pin_num, Pin.OUT, value=0)
+        time.sleep_ms(100) 
+        self.np = neopixel.NeoPixel(self.pin, self.num_leds)
+        self.turn_all_off()
 
-def set_led(led_index, color, brightness=50):
-    """
-    Set a single NeoPixel LED with color and brightness.
-    
-    Args:
-        led_index (int): LED position (0 to 29).
-        color (str): 'red', 'green', 'blue', 'yellow', etc.
-        brightness (int): 0-255 (lower = safer for USB power).
-    """
-
-    colors = {
-        'red': (255, 0, 0), 'green': (0, 255, 0), 'blue': (0, 0, 255),
-        'yellow': (255, 200, 0), 'orange': (255, 100, 0), 'purple': (150, 0, 255),
-        'indigo': (75, 0, 130), 'teal': (0, 180, 180), 'pink': (255, 50, 150),
-        'warmwhite': (255, 180, 150), 'coolwhite': (200, 200, 255), 'amber': (255, 120, 0),
-        'gold': (255, 215, 0), 'lavender': (180, 130, 255), 'mint': (100, 255, 180),
-        'peach': (255, 160, 120), 'skyblue': (100, 200, 255), 'magenta': (255, 0, 150),
-        'cyan': (0, 255, 255), 'lime': (150, 255, 0), 'turquoise': (0, 255, 200),
-        'halloween': (255, 100, 0), 'xmas_red': (255, 10, 10), 'xmas_green': (10, 255, 10),
-        'valentine': (255, 50, 100), 'sunrise': (255, 100, 50), 'forest': (0, 80, 0),
-        'ocean': (0, 50, 150), 'dim_red': (50, 0, 0), 'dim_blue': (0, 0, 50),
-        'dim_green': (0, 50, 0), 'off': (0, 0, 0), 'warm_dim': (80, 50, 30)
-    }
-    
-    r, g, b = colors.get(color.lower(), (0, 0, 0))
-    r = int(r * (brightness / 255))
-    g = int(g * (brightness / 255))
-    b = int(b * (brightness / 255))
-    
-    np[led_index] = (g, r, b)  # GRB order should be fixed later
-    np.write()
-
-def startup_animation():
-    # Color wave pattern
-    wave_colors = ['cyan', 'magenta', 'yellow', 'teal', 'purple']
-    
-    # Ripple out from center
-    for color in wave_colors:
-        # Expand outward
-        for pos in range(3):
-            set_led(2 - pos, color, 100)  # Move left
-            set_led(2 + pos, color, 100)  # Move right
-            utime.sleep(0.05)
-            turn_all_off()
+    def startup_animation(self):
+        """Advanced startup animation with multiple effects"""
+        colors = [
+            ('red', (255, 0, 0)),
+            ('green', (0, 255, 0)),
+            ('blue', (0, 0, 255)),
+            ('yellow', (255, 255, 0)),
+            ('purple', (128, 0, 128)),
+            ('cyan', (0, 255, 255)),
+            ('orange', (255, 165, 0))
+        ]
         
-        # Collapse inward
-        for pos in reversed(range(3)):
-            set_led(2 - pos, color, 100)
-            set_led(2 + pos, color, 100)
-            utime.sleep(0.05)
-            turn_all_off()
-    
-    # Final burst
-    for i in range(5):
-        for led in range(5):
-            set_led(led, wave_colors[i % len(wave_colors)], 100)
-        utime.sleep(0.1)
-    turn_all_off()
+        # 1. Sequential pop effect
+        for i in range(self.num_leds):
+            color_name, color_rgb = colors[i % len(colors)]
+            self.set_led(i, color_name, 30)
+            time.sleep_ms(50)
+            self.set_led(i, 'off', 0)
+        
+        # 2. Color wave
+        for _ in range(2):
+            for color_name, color_rgb in colors:
+                for i in range(self.num_leds):
+                    self.set_led(i, color_name, 30)
+                    if i > 0:
+                        self.set_led(i-1, color_name, 15)  # Dim previous
+                    time.sleep_ms(100)
+                self.turn_all_off()
+        
+        # 3. Sparkle finale
+        for _ in range(50):
+            idx = random.randint(0, self.num_leds-1)
+            color_name, color_rgb = random.choice(colors)
+            self.set_led(idx, color_name, 30)
+            time.sleep_ms(100)
+            self.set_led(idx, 'off', 0)
+        
+        # 4. Smooth fill to white
+        for bri in range(0, 30, 1):
+            self.fill('white', bri)
+            time.sleep_ms(100)
+        
 
-def turn_all_off():
-    np.fill((0, 0, 0))
-    np.write()
+        self.turn_all_off()
 
-def update_leds(event_counts):
-    max_count = max(event_counts) if max(event_counts) > 0 else 1
-    
-    for day in range(5):
-        count = event_counts[day]
-        if count > 0:
-            brightness = 15 + int(35 * (count / max_count))
-            set_led(day, 'green', brightness)
+    def set_led(self, led_index, color, brightness=50):
+        """Properly handles color order (GRB for NeoPixels/APA106)"""
+        if isinstance(color, str):
+            colors = {
+                'red': (255, 0, 0),
+                'green': (0, 255, 0),
+                'blue': (0, 0, 255),
+                'yellow': (255, 255, 0),
+                'purple': (128, 0, 128),
+                'white': (255, 255, 255),
+                'off': (0, 0, 0),
+                'cyan': (0, 255, 255),
+                'orange': (255, 165, 0)
+            }
+            r, g, b = colors.get(color.lower(), (0, 0, 0))
         else:
-            set_led(day, 'red', 25)
-        utime.sleep(0.1)
+            r, g, b = color
+        
+        brightness = max(0, min(100, brightness))
+        r = int(r * brightness / 100)
+        g = int(g * brightness / 100)
+        b = int(b * brightness / 100)
+        
+        self.np[led_index] = (g, r, b)
+        self.np.write()
+
+    def fill(self, color, brightness=50):
+        """Fill all LEDs with color"""
+        for i in range(self.num_leds):
+            self.set_led(i, color, brightness)
+    
+    def turn_all_off(self):
+        """Turn off all LEDs reliably"""
+        self.np.fill((0, 0, 0))
+        self.np.write()
+
+    def update_leds(self, event_counts):
+        """Visualize event counts with brightness levels"""
+        max_count = max(event_counts) if event_counts else 1
+        
+        for day in range(min(self.num_leds, len(event_counts))):
+            count = event_counts[day]
+            if count > 0:
+                # Scale brightness between 20-70%
+                brightness = 20 + int(60 * (count / max_count))
+                self.set_led(day, 'green', brightness)
+            else:
+                self.set_led(day, 'red', 20)
+            time.sleep_ms(50)
+            
+    def breathe(self):
+        while True:
+            for bri in range(0, 30, 1):
+                self.fill('green', bri)
+                time.sleep_ms(50)
+            for bri in range(30, 0, -1):
+                self.fill('green', bri)
+                time.sleep_ms(50)
+
