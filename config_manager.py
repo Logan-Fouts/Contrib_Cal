@@ -7,7 +7,6 @@ def load_config():
     try:
         with open(CONFIG_FILE, "r") as f:
             config = json.load(f)
-            print("Loaded config:", config)
             return config
     except:
         print("No config found. Using defaults (if any).")

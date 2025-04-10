@@ -23,6 +23,7 @@ class GITHUB_TRACKER:
             try:
                 print(f"Fetching page {page}...")
                 response = urequests.get(url, headers=headers)
+                print(response.status_code)
                 
                 if response.status_code != 200:
                     print(f"API Error {response.status_code}: {response.text[:200]}")
