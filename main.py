@@ -55,7 +55,7 @@ def main():
     while True:
         event_counts = gh_tracker.fetch_github_events()
         leds.update_leds(event_counts)
-        time.sleep(1000)
+        utime.sleep(3600)
 
 if __name__ == "__main__":
     main()
