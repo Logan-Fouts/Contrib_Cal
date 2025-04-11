@@ -1,14 +1,14 @@
 import urequests
 import utime
-from config_manager import load_config
+from config_manager import CONFIG_MANAGER
 
 class GITHUB_TRACKER:
-    
     def __init__(self, num_days):
         self.num_days = num_days
+        self.config_manager = CONFIG_MANAGER()
         
     def fetch_github_events(self, max_events=100):
-        config = load_config()
+        config = self.config_manager.load_config()
         all_events = []
         page = 1
         per_page = 30
@@ -23,7 +23,6 @@ class GITHUB_TRACKER:
             try:
                 print(f"Fetching page {page}...")
                 response = urequests.get(url, headers=headers)
-                print(response.status_code)
                 
                 if response.status_code != 200:
                     print(f"API Error {response.status_code}: {response.text[:200]}")
