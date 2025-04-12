@@ -1,15 +1,19 @@
 import network
+import struct
 import socket
 import machine
 import ntptime
 import utime
+import time
 from config_manager import CONFIG_MANAGER
 
 class WIFI_UTILS:
-    def __init__(self):
+    def __init__(self, config_manager):
         self.AP_SSID = "Contrib Calendar"
         self.AP_PASSWORD = "setup123"
-        self.config_manager = CONFIG_MANAGER()
+        self.config_manager = config_manager
+        self.NTP_DELTA = 2208988800
+        self.host = "pool.ntp.org"
         self.wlan = self.connect_wifi()
 
     def connect_wifi(self):
@@ -36,7 +40,7 @@ class WIFI_UTILS:
         
         self.test_dns()
         self.test_internet()
-        self.sync_time()
+        self.set_time()
         
         return wlan
 
@@ -92,9 +96,9 @@ class WIFI_UTILS:
                                 config[key] = unquote(value).replace('+', ' ')
                         
                         # Validate required fields
-                        required = ['WIFI_SSID', 'WIFI_PASSWORD', 'GITHUB_USERNAME', 'GITHUB_TOKEN']
+                        required = ['WIFI_SSID', 'WIFI_PASSWORD', 'GITHUB_USERNAME', 'GITHUB_TOKEN', 'STARTUP_ANIMATION']
                         if all(field in config for field in required):
-                            save_config(config)
+                            self.config_manager.save_config(config)
                             response = """HTTP/1.1 200 OK
     Content-Type: text/html
     Connection: close
@@ -126,7 +130,7 @@ class WIFI_UTILS:
                         conn.send(error_response.replace('\n', '\r\n'))
                 
                 else:
-                    # Serve HTML form (simplified without CSS)
+                    # Serve HTML form
                     current_config = load_config()
                     html = """HTTP/1.1 200 OK
     Content-Type: text/html
@@ -144,6 +148,10 @@ class WIFI_UTILS:
     Username: <input type="text" name="GITHUB_USERNAME" value="{GITHUB_USERNAME}" required><br>
     Token: <input type="password" name="GITHUB_TOKEN" value="{GITHUB_TOKEN}" required><br>
     <small>(Create token at github.com/settings/tokens)</small><br>
+    
+    <h2>Calander Settings</h2>
+    Startup Animation: <input type="text" name="STARTUP_ANIMATION" value="{STARTUP_ANIMATION}" required><br>
+    <small>(0: None, 1: Sequential pop, 2: Color wave, 3: Sparkle)</small><br>
 
     <button type="submit">Save Settings</button>
     </form>
@@ -152,7 +160,8 @@ class WIFI_UTILS:
                         WIFI_SSID=current_config.get('WIFI_SSID', ''),
                         WIFI_PASSWORD=current_config.get('WIFI_PASSWORD', ''),
                         GITHUB_USERNAME=current_config.get('GITHUB_USERNAME', ''),
-                        GITHUB_TOKEN=current_config.get('GITHUB_TOKEN', '')
+                        GITHUB_TOKEN=current_config.get('GITHUB_TOKEN', ''),
+                        STARTUP_ANIMATION=current_config.get('STARTUP_ANIMATION', '')
                     )
                     conn.send(html.replace('\n', '\r\n'))
                     
@@ -161,22 +170,25 @@ class WIFI_UTILS:
             finally:
                 if conn:
                     conn.close()
-                    
-    def sync_time(self):
-        try:
-            # TODO: Need to allow users to define there time zone
-            # Calculate UTC offset for New York
-            is_dst = utime.localtime()[1] > 3 and utime.localtime()[1] < 11  # DST from April to October
-            UTC_OFFSET = -4 * 3600 if is_dst else -5 * 3600
-            
-            ntptime.host = "time.cloudflare.com"
-            ntptime.settime()
-            
-            current_time = utime.localtime(utime.mktime(utime.localtime()) + UTC_OFFSET)
-            print("New York time synced:", current_time)
-        except Exception as e:
-            print("NTP sync failed:", e)
      
+    def set_time(self):
+        """ Credit to Aallan https://gist.github.com/aallan/581ecf4dc92cd53e3a415b7c33a1147c """
+        NTP_QUERY = bytearray(48)
+        NTP_QUERY[0] = 0x1B
+        addr = socket.getaddrinfo(self.host, 123)[0][-1]
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s.settimeout(1)
+            res = s.sendto(NTP_QUERY, addr)
+            msg = s.recv(48)
+        finally:
+            s.close()
+        val = struct.unpack("!I", msg[40:44])[0]
+        t = val - self.NTP_DELTA    
+        tm = time.gmtime(t)
+        machine.RTC().datetime((tm[0], tm[1], tm[2], tm[6] + 1, tm[3], tm[4], tm[5], 0))
+        print("Time synced:", tm)
+        
     def test_dns(self):
         try:
             addr = socket.getaddrinfo("google.com", 80)[0][-1]

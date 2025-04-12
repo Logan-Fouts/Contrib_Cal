@@ -5,7 +5,7 @@ import time
 import random
 
 class LED_UTILS:
-    def __init__(self, num_days=7, pin_num=28, animation=3, none_color=(255, 0, 0), event_color=(0, 255, 0)):
+    def __init__(self, num_days=7, animation=3, none_color=(255, 0, 0), event_color=(0, 255, 0), pin_num=28):
         self.colors = [
             ('red', (255, 0, 0)),
             ('green', (0, 255, 0)),
@@ -52,7 +52,7 @@ class LED_UTILS:
                     self.turn_all_off()
         elif self.animation == 3:
             # Sparkle
-            for _ in range(50):
+            for _ in range(25):
                 idx = random.randint(0, self.num_leds-1)
                 _, color_rgb = random.choice(self.colors)
                 self.set_led(idx, color_rgb, 30)
