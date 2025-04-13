@@ -172,22 +172,35 @@ class WIFI_UTILS:
                     conn.close()
      
     def set_time(self):
-        """ Credit to Aallan https://gist.github.com/aallan/581ecf4dc92cd53e3a415b7c33a1147c """
+        """Sync RTC with NTP and set local New York time (auto-adjusts for DST)."""
         NTP_QUERY = bytearray(48)
         NTP_QUERY[0] = 0x1B
         addr = socket.getaddrinfo(self.host, 123)[0][-1]
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
             s.settimeout(1)
-            res = s.sendto(NTP_QUERY, addr)
+            s.sendto(NTP_QUERY, addr)
             msg = s.recv(48)
         finally:
             s.close()
+        
         val = struct.unpack("!I", msg[40:44])[0]
-        t = val - self.NTP_DELTA    
-        tm = time.gmtime(t)
-        machine.RTC().datetime((tm[0], tm[1], tm[2], tm[6] + 1, tm[3], tm[4], tm[5], 0))
-        print("Time synced:", tm)
+        t = val - self.NTP_DELTA  # Get UTC timestamp
+        
+        # Check if daylight saving time is active (New York rules)
+        tm_utc = time.gmtime(t)
+        year = tm_utc[0]
+        # DST starts 2nd Sunday March, ends 1st Sunday November
+        dst_start = time.mktime((year, 3, 8 - (time.mktime((year, 3, 1, 0, 0, 0, 0, 0)) // 86400) % 7, 2, 0, 0, 0, 0))
+        dst_end = time.mktime((year, 11, 1 - (time.mktime((year, 11, 1, 0, 0, 0, 0, 0)) // 86400) % 7, 2, 0, 0, 0, 0))
+        is_dst = dst_start <= t < dst_end
+        
+        timezone_offset = -4 if is_dst else -5  # EDT (UTC-4) or EST (UTC-5)
+        t_local = t + (timezone_offset * 3600)  # Adjust for local time
+        
+        tm_local = time.gmtime(t_local)
+        machine.RTC().datetime((tm_local[0], tm_local[1], tm_local[2], tm_local[6] + 1, tm_local[3], tm_local[4], tm_local[5], 0))
+        print("New York time synced:", tm_local)
         
     def test_dns(self):
         try:
