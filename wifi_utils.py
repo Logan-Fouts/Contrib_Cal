@@ -48,7 +48,7 @@ class WIFI_UTILS:
         ap = network.WLAN(network.AP_IF)
         ap.active(True)
         ap.config(essid=self.AP_SSID, password=self.AP_PASSWORD)
-        print(f"AP mode active. Connect to '{AP_SSID}' and visit http://192.168.4.1")
+        print(f"AP mode active. Connect to '{self.AP_SSID}' and visit http://192.168.4.1")
 
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
