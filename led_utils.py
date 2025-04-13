@@ -29,6 +29,29 @@ class LED_UTILS:
         self.turn_all_off()
         self.startup_animation()
         self.turn_all_off()
+        
+    def hsv_to_rgb(self, h, s, v):
+        """Convert HSV to RGB (h=0-1, s=0-1, v=0-1)."""
+        if s == 0.0:
+            return (int(v * 255), int(v * 255), int(v * 255))
+        i = int(h * 6.0)
+        f = (h * 6.0) - i
+        p = v * (1.0 - s)
+        q = v * (1.0 - s * f)
+        t = v * (1.0 - s * (1.0 - f))
+        i = i % 6
+        if i == 0:
+            return (int(v * 255), int(t * 255), int(p * 255))
+        if i == 1:
+            return (int(q * 255), int(v * 255), int(p * 255))
+        if i == 2:
+            return (int(p * 255), int(v * 255), int(t * 255))
+        if i == 3:
+            return (int(p * 255), int(q * 255), int(v * 255))
+        if i == 4:
+            return (int(t * 255), int(p * 255), int(v * 255))
+        if i == 5:
+            return (int(v * 255), int(p * 255), int(q * 255))
 
     def startup_animation(self):
         if self.animation == 0:
@@ -58,6 +81,82 @@ class LED_UTILS:
                 self.set_led(idx, color_rgb, 30)
                 time.sleep_ms(100)
                 self.set_led(idx, self.colors[len(self.colors) - 1][1], 0)
+        elif self.animation == 4:
+            # Rainbow wave
+            for j in range(256):  # Cycle through all colors
+                for i in range(self.num_leds):
+                    # Each LED gets a slightly offset hue
+                    hue = ((i * 256 // self.num_leds) + j) % 256
+                    color_rgb = self.hsv_to_rgb(hue / 255, 1.0, 1.0)
+                    self.set_led(i, color_rgb, 30)
+                time.sleep_ms(20)
+        elif self.animation == 5:
+            # Fire effect
+            for _ in range(100):  # Run for 100 cycles
+                for i in range(self.num_leds):
+                    # Random flicker between red, orange, and yellow
+                    flicker = random.randint(0, 50)
+                    r = 255 - flicker
+                    g = 50 + flicker
+                    b = 0
+                    self.set_led(i, (r, g, b), 30)
+                time.sleep_ms(100)
+        elif self.animation == 6:
+            # Bouncing ball
+            ball_pos = 0
+            ball_dir = 1
+            ball_color = (255, 0, 0)  # Red ball
+
+            for _ in range(100):  # Run for 100 steps
+                self.turn_all_off()
+                self.set_led(ball_pos, ball_color, 30)
+                
+                ball_pos += ball_dir
+                if ball_pos >= self.num_leds - 1 or ball_pos <= 0:
+                    ball_dir *= -1  # Reverse direction
+                
+                time.sleep_ms(50)
+        elif self.animation == 7:
+            # Police lights
+            for _ in range(20):  # Flash 20 times
+                # Red half
+                for i in range(self.num_leds // 2):
+                    self.set_led(i, (255, 0, 0), 30)
+                # Blue half
+                for i in range(self.num_leds // 2, self.num_leds):
+                    self.set_led(i, (0, 0, 255), 30)
+                time.sleep_ms(200)
+                
+                # Swap sides
+                for i in range(self.num_leds // 2):
+                    self.set_led(i, (0, 0, 255), 30)
+                for i in range(self.num_leds // 2, self.num_leds):
+                    self.set_led(i, (255, 0, 0), 30)
+                time.sleep_ms(200)
+        elif self.animation == 8:
+            # Meteor rain
+            for _ in range(5):  # Repeat 5 times
+                for i in range(self.num_leds + 5):
+                    self.turn_all_off()
+                    # Draw meteor with fading tail
+                    for j in range(5):
+                        if i - j >= 0 and i - j < self.num_leds:
+                            brightness = 30 - (j * 6)
+                            if brightness > 0:
+                                self.set_led(i - j, (255, 255, 255), brightness)
+                    time.sleep_ms(50)
+        elif self.animation == 9:
+            # Color wipe (fill and clear)
+            for color in self.colors:
+                _, color_rgb = color
+                # Fill
+                for i in range(self.num_leds):
+                    self.set_led(i, color_rgb, 30)
+                    time.sleep_ms(30)
+                # Clear
+                for i in range(self.num_leds):
+                    self.set_led(i, (0, 0, 0), 0)
+                    time.sleep_ms(30)
         else:
             # Smooth fill to white
             for bri in range(0, 30, 1):
@@ -95,8 +194,8 @@ class LED_UTILS:
             if count > 0:
                 # Scale brightness
                 brightness = 1 + int(99 * (count / max_count))
-                self.set_led(day, self.colors[1][1], brightness)
+                self.set_led(day, self.event_color, brightness)
             else:
-                self.set_led(day, self.colors[0][1], 20)
+                self.set_led(day, self.none_color, 5)
             time.sleep_ms(50)
 
