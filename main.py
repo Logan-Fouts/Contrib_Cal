@@ -14,9 +14,11 @@ def detect_button_press(button, wifi, leds, poll_rate=0.1, run_time=60*60):
         if first and not second:
             print('Button pressed!')
             leds.startup_animation()
-            wifi.start_config_portal()
+            #wifi.start_config_portal()
+            break
         elif not first and second:
             print('Button released!')
+            break
 
 def main():
     pin_num = 28

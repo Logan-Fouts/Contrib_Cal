@@ -2,10 +2,21 @@ import network
 import struct
 import socket
 import machine
-import ntptime
 import utime
 import time
 from config_manager import CONFIG_MANAGER
+
+def unquote(string):
+    """MicroPython-compatible URL unquote function"""
+    import binascii
+    parts = string.split('%')
+    result = [parts[0]]
+    for item in parts[1:]:
+        try:
+            result.append(binascii.unhexlify(item[:2]).decode('latin-1') + item[2:])
+        except:
+            result.append('%' + item)
+    return ''.join(result)
 
 class WIFI_UTILS:
     def __init__(self, config_manager):
@@ -14,35 +25,34 @@ class WIFI_UTILS:
         self.config_manager = config_manager
         self.NTP_DELTA = 2208988800
         self.host = "pool.ntp.org"
-        self.wlan = self.connect_wifi()
+        self.wlan = None
+        self.connect_wifi()
 
     def connect_wifi(self):
         config = self.config_manager.load_config()
-        wlan = network.WLAN(network.STA_IF)
-        wlan.active(True)
-        wlan.connect(config['WIFI_SSID'], config['WIFI_PASSWORD'])
+        self.wlan = network.WLAN(network.STA_IF)
+        self.wlan.active(True)
         
-        if not wlan.isconnected():
-            if "WIFI_SSID" in config and "WIFI_PASSWORD" in config:
-                print(f"Connecting to {config['WIFI_SSID']}...")
-                wlan.connect(config['WIFI_SSID'], config['WIFI_PASSWORD'])
-                
-                for _ in range(20):  # 10-second timeout
-                    if wlan.isconnected():
-                        break
-                    utime.sleep(0.5)
+        if "WIFI_SSID" in config and "WIFI_PASSWORD" in config:
+            print(f"Connecting to {config['WIFI_SSID']}...")
+            self.wlan.connect(config['WIFI_SSID'], config['WIFI_PASSWORD'])
             
-            if not wlan.isconnected():
-                print("Wi-Fi failed. Starting config portal...")
-                start_config_portal()
+            max_attempts = 20
+            for _ in range(max_attempts):
+                if self.wlan.isconnected():
+                    break
+                utime.sleep(0.5)
         
-        print("Connected! IP:", wlan.ifconfig()[0])
+        if not self.wlan.isconnected():
+            print("Wi-Fi failed. Starting config portal...")
+            #self.start_config_portal()
+            return
+        
+        print("Connected! IP:", self.wlan.ifconfig()[0])
         
         self.test_dns()
         self.test_internet()
         self.set_time()
-        
-        return wlan
 
     def start_config_portal(self):
         ap = network.WLAN(network.AP_IF)
@@ -96,19 +106,20 @@ class WIFI_UTILS:
                                 config[key] = unquote(value).replace('+', ' ')
                         
                         # Validate required fields
-                        required = ['WIFI_SSID', 'WIFI_PASSWORD', 'GITHUB_USERNAME', 'GITHUB_TOKEN', 'STARTUP_ANIMATION']
+                        required = ['WIFI_SSID', 'WIFI_PASSWORD', 'GITHUB_USERNAME', 
+                                  'GITHUB_TOKEN', 'STARTUP_ANIMATION']
                         if all(field in config for field in required):
                             self.config_manager.save_config(config)
                             response = """HTTP/1.1 200 OK
-    Content-Type: text/html
-    Connection: close
+Content-Type: text/html
+Connection: close
 
-    <html>
-    <body>
-    <h1>Settings Saved!</h1>
-    <p>Device will reboot shortly...</p>
-    </body>
-    </html>"""
+<html>
+<body>
+<h1>Settings Saved!</h1>
+<p>Device will reboot shortly...</p>
+</body>
+</html>"""
                             conn.send(response.replace('\n', '\r\n'))
                             conn.close()
                             utime.sleep(3)
@@ -117,46 +128,47 @@ class WIFI_UTILS:
                             raise ValueError("Missing required fields")
                             
                     except Exception as e:
+                        print("Error processing form:", e)
                         error_response = """HTTP/1.1 400 Bad Request
-    Content-Type: text/html
-    Connection: close
+Content-Type: text/html
+Connection: close
 
-    <html>
-    <body>
-    <h1>Error</h1>
-    <p>Please fill all fields.</p>
-    </body>
-    </html>"""
+<html>
+<body>
+<h1>Error</h1>
+<p>Please fill all fields.</p>
+</body>
+</html>"""
                         conn.send(error_response.replace('\n', '\r\n'))
                 
                 else:
                     # Serve HTML form
-                    current_config = load_config()
+                    current_config = self.config_manager.load_config()
                     html = """HTTP/1.1 200 OK
-    Content-Type: text/html
-    Connection: close
+Content-Type: text/html
+Connection: close
 
-    <html>
-    <body>
-    <h1>Pico W Configuration</h1>
-    <form method="POST">
-    <h2>WiFi Settings</h2>
-    SSID: <input type="text" name="WIFI_SSID" value="{WIFI_SSID}" required><br>
-    Password: <input type="password" name="WIFI_PASSWORD" value="{WIFI_PASSWORD}" required><br>
+<html>
+<body>
+<h1>Pico W Configuration</h1>
+<form method="POST">
+<h2>WiFi Settings</h2>
+SSID: <input type="text" name="WIFI_SSID" value="{WIFI_SSID}" required><br>
+Password: <input type="password" name="WIFI_PASSWORD" value="{WIFI_PASSWORD}" required><br>
 
-    <h2>GitHub Settings</h2>
-    Username: <input type="text" name="GITHUB_USERNAME" value="{GITHUB_USERNAME}" required><br>
-    Token: <input type="password" name="GITHUB_TOKEN" value="{GITHUB_TOKEN}" required><br>
-    <small>(Create token at github.com/settings/tokens)</small><br>
-    
-    <h2>Calander Settings</h2>
-    Startup Animation: <input type="text" name="STARTUP_ANIMATION" value="{STARTUP_ANIMATION}" required><br>
-    <small>(0: None, 1: Sequential pop, 2: Color wave, 3: Sparkle)</small><br>
+<h2>GitHub Settings</h2>
+Username: <input type="text" name="GITHUB_USERNAME" value="{GITHUB_USERNAME}" required><br>
+Token: <input type="password" name="GITHUB_TOKEN" value="{GITHUB_TOKEN}" required><br>
+<small>(Create token at github.com/settings/tokens)</small><br>
 
-    <button type="submit">Save Settings</button>
-    </form>
-    </body>
-    </html>""".format(
+<h2>Calendar Settings</h2>
+Startup Animation: <input type="text" name="STARTUP_ANIMATION" value="{STARTUP_ANIMATION}" required><br>
+<small>(0: None, 1: Sequential pop, 2: Color wave, 3: Sparkle)</small><br>
+
+<button type="submit">Save Settings</button>
+</form>
+</body>
+</html>""".format(
                         WIFI_SSID=current_config.get('WIFI_SSID', ''),
                         WIFI_PASSWORD=current_config.get('WIFI_PASSWORD', ''),
                         GITHUB_USERNAME=current_config.get('GITHUB_USERNAME', ''),
@@ -175,12 +187,20 @@ class WIFI_UTILS:
         """Sync RTC with NTP and set local New York time (auto-adjusts for DST)."""
         NTP_QUERY = bytearray(48)
         NTP_QUERY[0] = 0x1B
-        addr = socket.getaddrinfo(self.host, 123)[0][-1]
+        try:
+            addr = socket.getaddrinfo(self.host, 123)[0][-1]
+        except Exception as e:
+            print("DNS resolution failed for NTP server:", e)
+            return
+            
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
             s.settimeout(1)
             s.sendto(NTP_QUERY, addr)
             msg = s.recv(48)
+        except Exception as e:
+            print("NTP sync failed:", e)
+            return
         finally:
             s.close()
         
@@ -199,7 +219,8 @@ class WIFI_UTILS:
         t_local = t + (timezone_offset * 3600)  # Adjust for local time
         
         tm_local = time.gmtime(t_local)
-        machine.RTC().datetime((tm_local[0], tm_local[1], tm_local[2], tm_local[6] + 1, tm_local[3], tm_local[4], tm_local[5], 0))
+        machine.RTC().datetime((tm_local[0], tm_local[1], tm_local[2], tm_local[6] + 1, 
+                              tm_local[3], tm_local[4], tm_local[5], 0))
         print("New York time synced:", tm_local)
         
     def test_dns(self):
@@ -212,9 +233,9 @@ class WIFI_UTILS:
     def test_internet(self):
         try:
             s = socket.socket()
-            s.connect(("142.250.190.46", 80))
+            s.settimeout(3)
+            s.connect(("142.250.190.46", 80))  # Google IP
             s.close()
             print("✅ Internet works!")
         except Exception as e:
             print("❌ No internet:", e)
-
