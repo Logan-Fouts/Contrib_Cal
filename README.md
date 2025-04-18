@@ -22,8 +22,6 @@ A hackable desk calendar that visualizes your GitHub contributions using NeoPixe
 4. **Save to Pico** (Ctrl+S → "Raspberry Pi Pico"):
    - Save `main.py` and `config.json` to the Pico's storage
 
-![Thonny Setup](/Images/thonny-screenshot.png)
-
 ## 📦 What's Included
 | Directory       | Contents                                  |
 |-----------------|-------------------------------------------|
