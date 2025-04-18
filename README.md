@@ -38,6 +38,7 @@ A hackable desk calendar that visualizes your GitHub contributions using NeoPixe
 - 28x WS2812B NeoPixels (~$10)
 - 3D-printed case
 - Micro-USB cable
+- Soldering tools and resources
 
 ![Contrib Cal](/Images/Render%20Front%20Face%20Screen.PNG)
 ![Contrib Cal Face with Screen](/Images/Render.PNG)
