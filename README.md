@@ -28,9 +28,9 @@ A hackable desk calendar that visualizes your GitHub contributions using NeoPixe
 | Directory       | Contents                                  |
 |-----------------|-------------------------------------------|
 | `/src`          | Micropython firmware & configuration      |
-| `/blender`      | 3D-printable case (Blender files)         |
-| `/freecad`      | Alternative enclosure designs (FreeCAD)   |
-| `/schematics`   | Wiring diagrams & PCB templates           |
+| `/blender`      | Render 3d files   (Blender files)         |
+| `/freecad`      | Enclosure designs (FreeCAD)               |
+| `/kicad`        | Wiring diagrams                           |
 
 ## 🔧 Build Guide
 ### You'll Need:
@@ -38,6 +38,7 @@ A hackable desk calendar that visualizes your GitHub contributions using NeoPixe
 - 28x WS2812B NeoPixels (~$10)
 - 3D-printed case
 - Micro-USB cable
+
 ![Contrib Cal](/Images/Render%20Front%20Face%20Screen.PNG)
 ![Contrib Cal Face with Screen](/Images/Render.PNG)
 
