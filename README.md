@@ -49,10 +49,9 @@ A hackable desk calendar that visualizes your GitHub contributions using NeoPixe
 4. **Configure** `config.json`:
 ```python
 {
-  "github_user": "YOUR_USERNAME",
-  "wifi_creds": ["SSID", "PASSWORD"],  # Optional for live sync
-  "colors": {
-    "event_color": "#00ff00",  # Green for active days
-    "none_color": "#ff0000"    # Red for no commits
-  }
+  "WIFI_SSID": "*",
+  "WIFI_PASSWORD": "*",
+  "GITHUB_USERNAME": "*",
+  "GITHUB_TOKEN": "*",
+  "STARTUP_ANIMATION": 4
 }
