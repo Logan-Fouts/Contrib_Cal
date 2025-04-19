@@ -38,6 +38,7 @@ def main():
         event_counts = gh_tracker.fetch_github_events()
         leds.update_leds(event_counts)
         detect_button_press(button, wifi, leds, poll_rate=0.1, run_time=run_freq)
+        leds.startup_animation()
 
 if __name__ == "__main__":
     main()

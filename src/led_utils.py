@@ -2,6 +2,7 @@ from machine import Pin
 import neopixel
 import ntptime
 import time
+import utime
 import random
 
 class LED_UTILS:
@@ -186,16 +187,19 @@ class LED_UTILS:
         self.np.write()
 
     def update_leds(self, event_counts):
-        """Visualize github history with brightness levels"""
         max_count = max(event_counts) if event_counts else 1
+        
+        current_time = utime.localtime()
         
         for day in range(min(self.num_leds, len(event_counts))):
             count = event_counts[day]
             if count > 0:
                 # Scale brightness
-                brightness = 1 + int(99 * (count / max_count))
+                if current_time[3] >= 10 or current_time[3] <= 8:
+                    brightness = 1 + int(10 * (count / max_count))
+                else:
+                    brightness = 1 + int(99 * (count / max_count))
                 self.set_led(day, self.event_color, brightness)
             else:
                 self.set_led(day, self.none_color, 5)
             time.sleep_ms(50)
-
