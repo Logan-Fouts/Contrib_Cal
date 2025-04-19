@@ -195,7 +195,7 @@ class LED_UTILS:
             count = event_counts[day]
             if count > 0:
                 # Scale brightness
-                if current_time[3] >= 10 or current_time[3] <= 8:
+                if current_time[3] >= 22 or current_time[3] <= 8:
                     brightness = 1 + int(10 * (count / max_count))
                 else:
                     brightness = 1 + int(99 * (count / max_count))
