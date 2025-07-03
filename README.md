@@ -5,7 +5,34 @@
 
 A hackable desk calendar that visualizes your GitHub contributions using NeoPixels and a Raspberry Pi Pico W. Open-source hardware + software.
 
-## 🌟 Features
+## 🤝 Sponsored by PCBWay
+
+![PCBWay Logo](https://www.pcbway.com/project/img/images/frompcbway.png)
+
+### Why PCBWay?
+- **Quality**: Crystal-clear silkscreen and precise tolerances. Everything fits perfect
+- **Fast**: From design to doorstep in days, took way less time than I had expected it to
+- **Affordable**: Perfect for makers and small-batch projects
+- **Global Shipping**: Reliable delivery worldwide, I was able to order in the US and get it delivered to Sweden since I would be there at that time
+
+*Professional PCB manufacturing makes all the difference for clean builds*
+
+### Want Your Own PCBs Made?
+If you're building your own Contrib Cal, PCBWay offers:
+- High-quality PCB fabrication
+- 3D printing
+
+**So you can build your own from scratch!**
+
+**Get started**: Go to [PCBWay.com](https://www.pcbway.com/) and upload your Gerber files.
+
+
+![PCB_LEDS](/Images/Real%20Pictures/assembled_pcb_front.jpg)
+
+---
+
+
+## Features
 - **Real GitHub Sync**: Updates via GitHub API
 - **Guilt Mode**: Glows red when you miss commits
 - **100% Hackable**: Customize animations in MicroPython
@@ -22,7 +49,7 @@ A hackable desk calendar that visualizes your GitHub contributions using NeoPixe
 4. **Save to Pico** (Ctrl+S → "Raspberry Pi Pico"):
    - Save `main.py` and `config.json` to the Pico's storage
 
-## 📦 What's Included
+## What's Included
 | Directory       | Contents                                  |
 |-----------------|-------------------------------------------|
 | `/src`          | Micropython firmware & configuration      |
@@ -30,7 +57,7 @@ A hackable desk calendar that visualizes your GitHub contributions using NeoPixe
 | `/freecad`      | Enclosure designs (FreeCAD)               |
 | `/kicad`        | Wiring diagrams                           |
 
-## 🔧 Build Guide
+## Build Guide
 ### You'll Need:
 - Raspberry Pi Pico W ($6)
 - 28x WS2812B NeoPixels (~$10)
@@ -39,7 +66,6 @@ A hackable desk calendar that visualizes your GitHub contributions using NeoPixe
 - Soldering tools and resources
 
 ![Contrib Cal](/Images/Render%20Front%20Face%20Screen.PNG)
-![Contrib Cal Face with Screen](/Images/Render.PNG)
 
 ### Assembly:
 1. **Print the Case**: Use files from `/blender` or `/freecad`
