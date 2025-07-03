@@ -1,58 +1,61 @@
-from machine import Pin
-import neopixel
-import ntptime
+from rpi_ws281x import PixelStrip, Color
 import time
-import utime
 import random
 
 class LED_UTILS:
-    def __init__(self, num_days=7, animation=3, none_color=(255, 0, 0), event_color=(0, 255, 0), pin_num=28):
-        self.colors = [
-            ('red', (255, 0, 0)),
-            ('green', (0, 255, 0)),
-            ('blue', (0, 0, 255)),
-            ('yellow', (255, 255, 0)),
-            ('purple', (128, 0, 128)),
-            ('cyan', (0, 255, 255)),
-            ('orange', (255, 165, 0)),
-            ('white', (255, 255, 255)),
-            ('off', (0, 0, 0))
-        ]
-        
+    def __init__(self, num_days=7, animation=3, none_color=(255, 0, 0), event_color=(0, 255, 0), pin_num=18):
         self.num_leds = num_days
         self.animation = animation
         self.none_color = none_color
         self.event_color = event_color
         
-        self.pin = Pin(pin_num, Pin.OUT, value=0)
-        self.np = neopixel.NeoPixel(self.pin, self.num_leds)
-        
+        # LED strip configuration:
+        LED_COUNT = self.num_leds
+        LED_PIN = pin_num
+        LED_FREQ_HZ = 800000
+        LED_DMA = 10
+        LED_BRIGHTNESS = 255
+        LED_INVERT = False
+        LED_CHANNEL = 0
+
+        self.strip = PixelStrip(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL)
+        self.strip.begin()
         self.turn_all_off()
         self.startup_animation()
         self.turn_all_off()
-        
-    def hsv_to_rgb(self, h, s, v):
-        """Convert HSV to RGB (h=0-1, s=0-1, v=0-1)."""
-        if s == 0.0:
-            return (int(v * 255), int(v * 255), int(v * 255))
-        i = int(h * 6.0)
-        f = (h * 6.0) - i
-        p = v * (1.0 - s)
-        q = v * (1.0 - s * f)
-        t = v * (1.0 - s * (1.0 - f))
-        i = i % 6
-        if i == 0:
-            return (int(v * 255), int(t * 255), int(p * 255))
-        if i == 1:
-            return (int(q * 255), int(v * 255), int(p * 255))
-        if i == 2:
-            return (int(p * 255), int(v * 255), int(t * 255))
-        if i == 3:
-            return (int(p * 255), int(q * 255), int(v * 255))
-        if i == 4:
-            return (int(t * 255), int(p * 255), int(v * 255))
-        if i == 5:
-            return (int(v * 255), int(p * 255), int(q * 255))
+
+    def set_led(self, led_index, color, brightness=50):
+        r, g, b = color
+        brightness = max(0, min(100, brightness))
+        r = int(r * brightness / 100)
+        g = int(g * brightness / 100)
+        b = int(b * brightness / 100)
+        self.strip.setPixelColor(led_index, Color(r, g, b))
+        self.strip.show()
+
+    def fill(self, color, brightness=50):
+        for i in range(self.num_leds):
+            self.set_led(i, color, brightness)
+
+    def turn_all_off(self):
+        for i in range(self.num_leds):
+            self.strip.setPixelColor(i, Color(0, 0, 0))
+        self.strip.show()
+
+    def update_leds(self, event_counts):
+        max_count = max(event_counts) if event_counts else 1
+        current_time = time.localtime()
+        for day in range(min(self.num_leds, len(event_counts))):
+            count = event_counts[day]
+            if count > 0:
+                if current_time.tm_hour >= 22 or current_time.tm_hour <= 8:
+                    brightness = 1 + int(10 * (count / max_count))
+                else:
+                    brightness = 1 + int(99 * (count / max_count))
+                self.set_led(day, self.event_color, brightness)
+            else:
+                self.set_led(day, self.none_color, 5)
+            time.sleep(0.05)
 
     def startup_animation(self):
         if self.animation == 0:
@@ -167,39 +170,25 @@ class LED_UTILS:
 
         self.turn_all_off()
 
-    def set_led(self, led_index, color, brightness=50):
-        r, g, b = color
-        
-        brightness = max(0, min(100, brightness))
-        r = int(r * brightness / 100)
-        g = int(g * brightness / 100)
-        b = int(b * brightness / 100)
-        
-        self.np[led_index] = (g, r, b)
-        self.np.write()
-        
-    def fill(self, color, brightness=50):
-        for i in range(self.num_leds):
-            self.set_led(i, color, brightness)
-    
-    def turn_all_off(self):
-        self.np.fill((0, 0, 0))
-        self.np.write()
-
-    def update_leds(self, event_counts):
-        max_count = max(event_counts) if event_counts else 1
-        
-        current_time = utime.localtime()
-        
-        for day in range(min(self.num_leds, len(event_counts))):
-            count = event_counts[day]
-            if count > 0:
-                # Scale brightness
-                if current_time[3] >= 22 or current_time[3] <= 8:
-                    brightness = 1 + int(10 * (count / max_count))
-                else:
-                    brightness = 1 + int(99 * (count / max_count))
-                self.set_led(day, self.event_color, brightness)
-            else:
-                self.set_led(day, self.none_color, 5)
-            time.sleep_ms(50)
+    def hsv_to_rgb(self, h, s, v):
+        """Convert HSV to RGB (h=0-1, s=0-1, v=0-1)."""
+        if s == 0.0:
+            return (int(v * 255), int(v * 255), int(v * 255))
+        i = int(h * 6.0)
+        f = (h * 6.0) - i
+        p = v * (1.0 - s)
+        q = v * (1.0 - s * f)
+        t = v * (1.0 - s * (1.0 - f))
+        i = i % 6
+        if i == 0:
+            return (int(v * 255), int(t * 255), int(p * 255))
+        if i == 1:
+            return (int(q * 255), int(v * 255), int(p * 255))
+        if i == 2:
+            return (int(p * 255), int(v * 255), int(t * 255))
+        if i == 3:
+            return (int(p * 255), int(q * 255), int(v * 255))
+        if i == 4:
+            return (int(t * 255), int(p * 255), int(v * 255))
+        if i == 5:
+            return (int(v * 255), int(p * 255), int(q * 255))

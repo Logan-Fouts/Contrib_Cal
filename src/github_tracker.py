@@ -1,5 +1,5 @@
-import urequests
-import utime
+import requests
+import time
 from config_manager import CONFIG_MANAGER
 
 class GITHUB_TRACKER:
@@ -17,12 +17,12 @@ class GITHUB_TRACKER:
             url = f"https://api.github.com/users/{config['GITHUB_USERNAME']}/events?page={page}&per_page={per_page}"
             headers = {
                 "Authorization": f"Bearer {config['GITHUB_TOKEN']}",
-                "User-Agent": "PicoW"
+                "User-Agent": "PiZero"
             }
             
             try:
                 print(f"Fetching page {page}...")
-                response = urequests.get(url, headers=headers)
+                response = requests.get(url, headers=headers)
                 
                 if response.status_code != 200:
                     print(f"API Error {response.status_code}: {response.text[:200]}")
@@ -36,7 +36,7 @@ class GITHUB_TRACKER:
                     break
                     
                 page += 1
-                utime.sleep(1)
+                time.sleep(1)
                 
             except Exception as e:
                 print(f"Request failed: {str(e)}")
@@ -47,7 +47,7 @@ class GITHUB_TRACKER:
 
     def get_event_counts(self, events):
         event_counts = [0] * self.num_days
-        now = utime.time()
+        now = time.time()
         
         for event in events:
             try:
@@ -56,8 +56,8 @@ class GITHUB_TRACKER:
                 month = int(created_at[5:7])
                 day = int(created_at[8:10])
                 
-                event_time = utime.mktime((year, month, day, 0, 0, 0, 0, 0))
-                days_ago = (now - event_time) // 86400
+                event_time = time.mktime((year, month, day, 0, 0, 0, 0, 0, -1))
+                days_ago = int((now - event_time) // 86400)
                 
                 if 0 <= days_ago < self.num_days:
                     event_counts[days_ago] += 1

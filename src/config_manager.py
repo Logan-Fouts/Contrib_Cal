@@ -1,5 +1,4 @@
 import json
-import urequests
 
 class CONFIG_MANAGER:
     def __init__(self):
@@ -15,7 +14,7 @@ class CONFIG_MANAGER:
             return {}
 
     def save_config(self, config):
-        with open(CONFIG_FILE, "w") as f:
+        with open(self.CONFIG_FILE, "w") as f:
             json.dump(config, f)
         print("Config saved.")
 
